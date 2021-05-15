@@ -20,7 +20,7 @@ class MyClient(discord.Client):
         self.embed_message = None
 
         # channel ID probably won't change so I put it up here
-        self.channel_id = 842511889249992744
+        self.channel_id = 842597377285816341
 
         # server information
         self.SERVER = ("na.dontddos.com", 27015)
@@ -35,10 +35,6 @@ class MyClient(discord.Client):
         print(self.user.name)
         print(self.user.id)
         print('------')
-
-        # Delete old messages in the channel
-        channel = self.get_channel(self.channel_id)
-        await channel.purge()
 
     async def _query_server(self):
         """Querys the server for players, and current map"""
@@ -66,7 +62,9 @@ class MyClient(discord.Client):
         embed.add_field(name='Map',
                         value=player_info[-1],
                         inline=True)
-        embed.set_footer(text=f'This information updates every 5 minutes. Updated: Today at {datetime.datetime.now().strftime("%I:%M:%S %p")} PST')
+        # Assume that today is... today? 
+        # todo; No hardcoded date
+        embed.set_footer(text=f'This information updates every 5 minutes. Updated: Today at {datetime.datetime.now().strftime("%-I:%M:%S %p")} PST')
         return embed
 
     @tasks.loop(minutes=5)  # task runs every 5 minutes
@@ -85,6 +83,9 @@ class MyClient(discord.Client):
     @my_background_task.before_loop
     async def before_my_task(self):
         await self.wait_until_ready()  # wait until the bot logs in
+        # Delete old messages in the channel
+        channel = self.get_channel(self.channel_id)
+        await channel.purge()
 
 client = MyClient()
 client.run(TOKEN)
