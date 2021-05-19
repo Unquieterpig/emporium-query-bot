@@ -52,7 +52,11 @@ class MyClient(discord.Client):
         return accurate_players
 
     async def _get_embed(self):
-        player_info = await self._query_server()
+        try:
+            player_info = await self._query_server()
+        except valve.source.a2s.NoResponseError:
+            print('Timed out while getting server info')
+            return None
         embed = discord.Embed(title=f'{self.SERVER_TITLE} info',
                               url=f'{self.SERVER_URL}',
                               color=0x99ff00 if len(player_info) - 1 > 0 else 0xFF5733)
@@ -77,8 +81,9 @@ class MyClient(discord.Client):
             self.ran_once = True
             print('Sent first embed!')
         else:
-            await self.embed_message.edit(embed=embed)
-            print('Edited embed!')
+            if embed:
+                await self.embed_message.edit(embed=embed)
+                print('Edited embed!')
 
     @my_background_task.before_loop
     async def before_my_task(self):
