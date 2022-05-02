@@ -1,9 +1,9 @@
 from discord.ext import tasks
 from dotenv import load_dotenv
+from datetime import datetime
 
 import discord
-import valve.source.a2s
-import datetime
+import a2s
 import os
 
 # load our enviroment variables
@@ -31,47 +31,61 @@ class MyClient(discord.Client):
         self.my_background_task.start()
 
     async def on_ready(self):
-        print('Logged in as')
+        print('Logged in as:')
         print(self.user.name)
         print(self.user.id)
         print('------')
+        
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{self.SERVER_TITLE}"))
 
     async def _query_server(self):
         """Querys the server for players, and current map"""
-        with valve.source.a2s.ServerQuerier(self.SERVER) as emporium:
-            accurate_players = []
-            info = emporium.info()
-            for player in sorted(emporium.players()['players'],
-                                 key=lambda p: p["score"],
-                                 reverse=True):
-                # The query can sometimes return empty players, which screws up player count:
-                # https://python-valve.readthedocs.io/en/latest/source.html#valve.source.a2s.ServerQuerier.players
-                if player['name']:
-                    accurate_players.append(f'{player["name"]} - {player["score"]}')
-            accurate_players.append(f'{info["map"]}')
+        accurate_players = []
+        info = a2s.info(self.SERVER).map_name
+        players = a2s.players(self.SERVER)
+        for player in sorted(players,
+                             key=lambda p: p.score,
+                             reverse=True):
+            # The query can sometimes return empty players, which screws up player count:
+            # https://python-valve.readthedocs.io/en/latest/source.html#valve.source.a2s.ServerQuerier.players
+            if player.name:
+                accurate_players.append(f'{player.name} - {player.score}')
+        accurate_players.append(f'{info}')
         return accurate_players
 
     async def _get_embed(self):
         try:
             player_info = await self._query_server()
-        except valve.source.a2s.NoResponseError:
-            print('Timed out while getting server info')
-            return None
-        embed = discord.Embed(title=f'{self.SERVER_TITLE} info',
+        except TimeoutError: # Okay we timed out... Not good! Maybe it was a fluke? Retry 2 times.
+            for attempt in range(2):
+                print(f'Timed out from {self.SERVER[0]}, retrying... ({attempt + 1}/2)')
+                try:
+                    player_info = await self._query_server()
+                except TimeoutError:
+                    continue
+                else:
+                    break
+            else: # Not a fluke, server is offline.
+                player_info = None
+        embed = discord.Embed(title=f'{self.SERVER_TITLE}',
                               url=f'{self.SERVER_URL}',
-                              color=0x99ff00 if len(player_info) - 1 > 0 else 0xFF5733)
-        embed.add_field(name=f'Player Count ({len(player_info) - 1})',
-                        value='\n'.join(player_info[:-1]) if len(player_info) - 1 > 0 else 'None',
+                              description='Status: Online' if player_info else 'Status: Offline',
+                              color=0x99ff00 if player_info else 0xFF0000,
+                              timestamp=datetime.utcnow())
+        embed.add_field(name=f'Player Count ({len(player_info) - 1})' if player_info else f'Player Count (0)',
+                        value='\n'.join(player_info[:-1]) if player_info and len(player_info) - 1 > 0 else 'None',
                         inline=True)
         embed.add_field(name='Map',
-                        value=player_info[-1],
+                        value=player_info[-1] if player_info else 'Unknown',
                         inline=True)
-        # Assume that today is... today? 
-        # todo; No hardcoded date
-        embed.set_footer(text=f'This information updates every 5 minutes. Updated: Today at {datetime.datetime.now().strftime("%-I:%M:%S %p")} PST')
+        if not(player_info):
+            embed.add_field(name=':rotating_light: Critical Error :rotating_light:',
+                            value='If this issue still persists please contact: Car#5159',
+                            inline=False)
+        embed.set_footer(text='\u200b',icon_url='https://i.imgur.com/iBtPVkB.png')
         return embed
 
-    @tasks.loop(minutes=5)  # task runs every 5 minutes
+    @tasks.loop(minutes=1)  # task runs every 1 minutes
     async def my_background_task(self):
         channel = self.get_channel(self.channel_id)
         embed = await self._get_embed()

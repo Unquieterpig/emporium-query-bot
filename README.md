@@ -5,6 +5,6 @@ A simple discord bot that updates information about emporium
 
 [discord.py](https://pypi.org/project/discord.py/)
 
-[python-valve](https://pypi.org/project/python-valve/)
+[python-valve](https://pypi.org/project/python-a2s/)
 
 [dotenv](https://pypi.org/project/python-dotenv/)
