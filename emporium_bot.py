@@ -20,8 +20,7 @@ class MyClient(discord.Client):
         self.embed_message = None
 
         # channel ID probably won't change so I put it up here
-        self.channel_id = 842511889249992744
-        # self.channel_id = 842597377285816341
+        self.channel_id = 842597377285816341
 
         # server information
         self.SERVER = ("na.dontddos.com", 27015)
