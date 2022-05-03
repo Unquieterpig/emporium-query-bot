@@ -20,7 +20,8 @@ class MyClient(discord.Client):
         self.embed_message = None
 
         # channel ID probably won't change so I put it up here
-        self.channel_id = 842597377285816341
+        self.channel_id = 842511889249992744
+        # self.channel_id = 842597377285816341
 
         # server information
         self.SERVER = ("na.dontddos.com", 27015)
@@ -36,7 +37,7 @@ class MyClient(discord.Client):
         print(self.user.id)
         print('------')
         
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{self.SERVER_TITLE}"))
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{self.SERVER[0]}"))
 
     async def _query_server(self):
         """Querys the server for players, and current map"""
