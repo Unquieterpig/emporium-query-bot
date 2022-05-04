@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from discord.ext import tasks
 from dotenv import load_dotenv
 from datetime import datetime
@@ -93,11 +94,18 @@ class MyClient(discord.Client):
         if not(self.ran_once):
             self.embed_message = await channel.send(embed=embed)
             self.ran_once = True
-            print('Sent first embed!')
+            print('Sent embed!')
         else:
             if embed:
-                await self.embed_message.edit(embed=embed)
-                print('Edited embed!')
+                try:
+                    await self.embed_message.edit(embed=embed)
+                except HTTPException: # If edit fales purge channel and send new embed
+                    await channel.purge()
+                    self.embed_message = await channel.send(embed=embed)
+                    print('Embed deleted, or missing! Sending new embed!')
+                else:
+                    print('Edited embed!')
+
 
     @my_background_task.before_loop
     async def before_my_task(self):
