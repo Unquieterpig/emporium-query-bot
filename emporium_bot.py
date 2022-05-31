@@ -99,7 +99,7 @@ class MyClient(discord.Client):
             if embed:
                 try:
                     await self.embed_message.edit(embed=embed)
-                except HTTPException: # If edit fales purge channel and send new embed
+                except discord.errors.HTTPException: # If edit fails purge channel and send new embed
                     await channel.purge()
                     self.embed_message = await channel.send(embed=embed)
                     print('Embed deleted, or missing! Sending new embed!')
